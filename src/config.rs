@@ -1,5 +1,8 @@
 use std::env;
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use crate::args::Args;
 
 const PROJECT_DIR: &str = "mt-project";
 const CONFIG_DIR: &str = "config";
@@ -15,8 +18,6 @@ pub struct Config {
     /// this field represents the path to the second of two possibles files from which
     /// to read contents
     file_2: PathBuf,
-    /// this field represents the buffer for the contents of the target file.
-    data: String,
 }
 
 impl Config {
@@ -24,13 +25,8 @@ impl Config {
     /// as an empty `String`.
     pub fn new() -> Self {
         let (file_1, file_2) = Self::set_file_paths();
-        let data = String::new();
 
-        Self {
-            file_1,
-            file_2,
-            data,
-        }
+        Self { file_1, file_2 }
     }
 
     /// returns a tuple that represents the paths to both of the files from
@@ -59,12 +55,42 @@ impl Config {
     }
 }
 
+impl Config {
+    /// gets the path to the first file from which the program can read data
+    fn get_file_1_path(&self) -> &Path {
+        &self.file_1.as_path()
+    }
+
+    /// gets the path to the second file from which the program can read data
+    fn get_file_2_path(&self) -> &Path {
+        &self.file_2.as_path()
+    }
+
+    /// loads the contents of a file pointed to by 'filepath' and returns its contents
+    /// as a `String`
+    fn load_data(&self, filepath: &Path) -> String {
+        fs::read_to_string(filepath).expect("Could not read file contents")
+    }
+
+    /// fetches the contents of the file that corresponds to the arg that the program is being
+    /// run with. If the file retrieved is empty, which should not be the case,
+    /// the function will return `None`, but otherwise will return `Some(String)`.
+    pub fn run(&self, arg: Args) -> Option<String> {
+        let data = match arg {
+            Args::P => self.load_data(self.get_file_1_path()),
+            Args::S => self.load_data(self.get_file_2_path()),
+        };
+
+        if data.is_empty() { None } else { Some(data) }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn positive_case_test_outputs_expected_files() {
+    fn positive_test_outputs_expected_files() {
         let (file_1, file_2) = Config::set_file_paths();
 
         assert!(file_1.ends_with(FILE_1_NAME));
@@ -72,17 +98,26 @@ mod tests {
     }
 
     #[test]
-    fn positive_case_data_field_is_empty_upon_initialisation() {
-        let config = Config::new();
-
-        assert!(config.data.is_empty());
-    }
-
-    #[test]
-    fn positive_case_filepath_fields_are_correctly_initialised() {
+    fn positive_test_filepath_fields_are_correctly_initialised() {
         let config = Config::new();
 
         assert!(config.file_1.ends_with(FILE_1_NAME));
         assert!(config.file_2.ends_with(FILE_2_NAME));
+    }
+
+    #[test]
+    fn positive_test_retrieves_the_expected_fields() {
+        let config = Config::new();
+
+        assert!(config.get_file_1_path().ends_with(FILE_1_NAME));
+        assert!(config.get_file_2_path().ends_with(FILE_2_NAME));
+    }
+
+    #[test]
+    fn positive_test_file_is_not_empty() {
+        let config = Config::new();
+
+        assert_ne!(config.run(Args::S), None);
+        assert_ne!(config.run(Args::P), None);
     }
 }

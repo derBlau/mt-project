@@ -1,7 +1,7 @@
+mod args;
 mod config;
 
+use args::Args;
 use config::Config;
 
-fn main() {
-    let _config = Config::new();
-}
+fn main() {}
