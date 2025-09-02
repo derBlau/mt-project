@@ -3,6 +3,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::args::Args;
+use crate::data::Data;
+use crate::task::Task;
 
 const PROJECT_DIR: &str = "mt-project";
 const CONFIG_DIR: &str = "config";
@@ -72,16 +74,40 @@ impl Config {
         fs::read_to_string(filepath).expect("Could not read file contents")
     }
 
-    /// fetches the contents of the file that corresponds to the arg that the program is being
-    /// run with. If the file retrieved is empty, which should not be the case,
-    /// the function will return `None`, but otherwise will return `Some(String)`.
-    pub fn run(&self, arg: Args) -> Option<String> {
-        let data = match arg {
-            Args::P => self.load_data(self.get_file_1_path()),
-            Args::S => self.load_data(self.get_file_2_path()),
+    /// fetches the contents of the file (`Data`) and a task (`Task`) that the program will perform based
+    /// on the args that the program is being run with. If the file is empty, which should never be the
+    /// considering that the program is being run in an artificial environment, the function returns
+    /// `None`; otherwise, it returns a tuple with the contents of the file and the task to perform.
+    pub fn run(&self, arg: Args) -> Option<(Data, Task)> {
+        let (data, task) = match arg {
+            Args::P => {
+                let contents = self.load_data(&self.file_1);
+
+                if contents.is_empty() {
+                    return None;
+                }
+
+                let data = Data::new(contents);
+                let task = Task::new(arg);
+
+                (data, task)
+            }
+
+            Args::S => {
+                let contents = self.load_data(&self.get_file_2_path());
+
+                if contents.is_empty() {
+                    return None;
+                }
+
+                let data = Data::new(contents);
+                let task = Task::new(arg);
+
+                (data, task)
+            }
         };
 
-        if data.is_empty() { None } else { Some(data) }
+        Some((data, task))
     }
 }
 
@@ -116,8 +142,10 @@ mod tests {
     #[test]
     fn positive_test_file_is_not_empty() {
         let config = Config::new();
+        let file_1_contents = config.load_data(config.get_file_1_path());
+        let file_2_contents = config.load_data(config.get_file_2_path());
 
-        assert_ne!(config.run(Args::S), None);
-        assert_ne!(config.run(Args::P), None);
+        assert!(!file_1_contents.is_empty());
+        assert!(!file_2_contents.is_empty());
     }
 }

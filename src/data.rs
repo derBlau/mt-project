@@ -9,6 +9,7 @@ pub struct Data {
 }
 
 impl Data {
+    /// returns an instance of `Data`
     pub fn new(data: String) -> Self {
         let word_count = {
             let words: Vec<&str> = data.split_whitespace().collect();
@@ -17,6 +18,14 @@ impl Data {
         };
 
         Self { data, word_count }
+    }
+}
+
+impl Data {
+    /// returns the amount of words extracted from the file that was loaded onto
+    /// the program
+    pub fn get_word_count(&self) -> u32 {
+        self.word_count as u32
     }
 }
 
